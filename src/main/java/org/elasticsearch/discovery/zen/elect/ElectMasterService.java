@@ -55,6 +55,12 @@ public class ElectMasterService extends AbstractComponent {
         return minimumMasterNodes;
     }
 
+    /**
+     * 检查节点的个数是否大于minimumMasterNodes参数
+     *
+     * @param nodes 节点列表
+     * @return 返回结果
+     */
     public boolean hasEnoughMasterNodes(Iterable<DiscoveryNode> nodes) {
         if (minimumMasterNodes < 1) {
             return true;
@@ -71,6 +77,7 @@ public class ElectMasterService extends AbstractComponent {
     /**
      * Returns the given nodes sorted by likelyhood of being elected as master, most likely first.
      * Non-master nodes are not removed but are rather put in the end
+     *
      * @param nodes
      * @return
      */
@@ -108,9 +115,16 @@ public class ElectMasterService extends AbstractComponent {
         if (sortedNodes == null || sortedNodes.isEmpty()) {
             return null;
         }
+        // 这个选举办法还真是简单粗暴啊。。。
         return sortedNodes.get(0);
     }
 
+    /**
+     * 对所有的master eligible节点进行排序
+     *
+     * @param nodes
+     * @return
+     */
     private List<DiscoveryNode> sortedMasterNodes(Iterable<DiscoveryNode> nodes) {
         List<DiscoveryNode> possibleNodes = Lists.newArrayList(nodes);
         if (possibleNodes.isEmpty()) {
@@ -129,6 +143,13 @@ public class ElectMasterService extends AbstractComponent {
 
     private static class NodeComparator implements Comparator<DiscoveryNode> {
 
+        /**
+         * 通过节点ID进行排序
+         *
+         * @param o1
+         * @param o2
+         * @return
+         */
         @Override
         public int compare(DiscoveryNode o1, DiscoveryNode o2) {
             if (o1.masterNode() && !o2.masterNode()) {

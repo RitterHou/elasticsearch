@@ -142,6 +142,8 @@ public class QueryPhase implements SearchPhase {
                         // relevant docs got emitted as hit, we can simply mark the last doc as last emitted
                         if (searchContext.searchType() == SearchType.QUERY_AND_FETCH ||
                                 searchContext.searchType() == SearchType.DFS_QUERY_AND_FETCH) {
+                            // 更新lastEmittedDoc，这是为了下一次的查询做准备
+                            // 取出查询结果中的最后一个doc，作为下一次查询的第一个doc
                             searchContext.lastEmittedDoc(topDocs.scoreDocs[size - 1]);
                         }
                     }

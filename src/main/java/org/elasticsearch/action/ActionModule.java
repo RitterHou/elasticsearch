@@ -304,6 +304,7 @@ public class ActionModule extends AbstractModule {
                 TransportSearchQueryAndFetchAction.class,
                 TransportSearchScanAction.class
         );
+        // scroll操作的相关内容
         registerAction(SearchScrollAction.INSTANCE, TransportSearchScrollAction.class,
                 TransportSearchScrollScanAction.class,
                 TransportSearchScrollQueryThenFetchAction.class,

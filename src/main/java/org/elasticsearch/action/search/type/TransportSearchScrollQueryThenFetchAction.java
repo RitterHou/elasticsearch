@@ -126,6 +126,7 @@ public class TransportSearchScrollQueryThenFetchAction extends AbstractComponent
             }
             final AtomicInteger counter = new AtomicInteger(scrollId.getContext().length);
 
+            // 获取scrollId所对应的上下文信息
             Tuple<String, Long>[] context = scrollId.getContext();
             for (int i = 0; i < context.length; i++) {
                 Tuple<String, Long> target = context[i];

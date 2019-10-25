@@ -97,6 +97,7 @@ public class SearchServiceTransportAction extends AbstractComponent {
             return ThreadPool.Names.SAME;
         }
     }
+
     //
     private final ThreadPool threadPool;
     private final TransportService transportService;
@@ -104,7 +105,8 @@ public class SearchServiceTransportAction extends AbstractComponent {
     private final SearchService searchService;
     private final FreeContextResponseHandler freeContextResponseHandler = new FreeContextResponseHandler(new ActionListener<Boolean>() {
         @Override
-        public void onResponse(Boolean aBoolean) {}
+        public void onResponse(Boolean aBoolean) {
+        }
 
         @Override
         public void onFailure(Throwable exp) {
@@ -445,6 +447,7 @@ public class SearchServiceTransportAction extends AbstractComponent {
     }
 
     private void sendExecuteFetch(DiscoveryNode node, String action, final ShardFetchRequest request, final SearchServiceListener<FetchSearchResult> listener) {
+        // 如果目标节点就是当前节点，则在当前节点执行
         if (clusterService.state().nodes().localNodeId().equals(node.id())) {
             execute(new Callable<FetchSearchResult>() {
                 @Override
@@ -452,7 +455,9 @@ public class SearchServiceTransportAction extends AbstractComponent {
                     return searchService.executeFetchPhase(request);
                 }
             }, listener);
-        } else {
+        }
+        // 否则，将请求发送到相应的节点上去执行
+        else {
             transportService.sendRequest(node, action, request, new BaseTransportResponseHandler<FetchSearchResult>() {
 
                 @Override

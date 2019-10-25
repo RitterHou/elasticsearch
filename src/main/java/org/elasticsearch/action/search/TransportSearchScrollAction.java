@@ -27,12 +27,9 @@ import org.elasticsearch.action.search.type.TransportSearchScrollQueryThenFetchA
 import org.elasticsearch.action.search.type.TransportSearchScrollScanAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
-import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
 import static org.elasticsearch.action.search.type.ParsedScrollId.*;
@@ -63,6 +60,7 @@ public class TransportSearchScrollAction extends HandledTransportAction<SearchSc
     @Override
     protected void doExecute(SearchScrollRequest request, ActionListener<SearchResponse> listener) {
         try {
+            // 计算出scrollId
             ParsedScrollId scrollId = parseScrollId(request.scrollId());
             if (scrollId.getType().equals(QUERY_THEN_FETCH_TYPE)) {
                 queryThenFetchAction.execute(request, scrollId, listener);

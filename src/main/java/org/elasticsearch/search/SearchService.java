@@ -137,6 +137,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
 
     private final AtomicLong idGenerator = new AtomicLong();
 
+    // ActiveContexts保存了所有的查询上下文信息，包括scroll的信息
     private final ConcurrentMapLong<SearchContext> activeContexts = ConcurrentCollections.newConcurrentMapLongWithAggressiveConcurrency();
 
     private final ImmutableMap<String, SearchParseElement> elementParsers;
@@ -278,7 +279,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
      * Try to load the query results from the cache or execute the query phase directly if the cache cannot be used.
      */
     private void loadOrExecuteQueryPhase(final ShardSearchRequest request, final SearchContext context,
-            final QueryPhase queryPhase) throws Exception {
+                                         final QueryPhase queryPhase) throws Exception {
         final boolean canCache = indicesQueryCache.canCache(request, context);
         if (canCache) {
             indicesQueryCache.loadIntoContext(request, context, queryPhase);
@@ -457,7 +458,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
             context.indexShard().searchService().onPreQueryPhase(context);
             long time = System.nanoTime();
             try {
-                queryPhase.execute(context);
+                queryPhase.execute(context); // query阶段开始工作
             } catch (Throwable e) {
                 context.indexShard().searchService().onFailedQueryPhase(context);
                 throw ExceptionsHelper.convertToRuntime(e);
@@ -467,7 +468,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
             context.indexShard().searchService().onPreFetchPhase(context);
             try {
                 shortcutDocIdsToLoad(context);
-                fetchPhase.execute(context);
+                fetchPhase.execute(context); // fetch阶段开始工作
                 if (context.scroll() == null) {
                     freeContext(request.id());
                 } else {

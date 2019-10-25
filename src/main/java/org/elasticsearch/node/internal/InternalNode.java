@@ -128,6 +128,7 @@ public final class InternalNode implements Node {
         this(ImmutableSettings.Builder.EMPTY_SETTINGS, true);
     }
 
+    // 初始化节点配置
     public InternalNode(Settings preparedSettings, boolean loadConfigSettings) throws ElasticsearchException {
         final Settings pSettings = settingsBuilder().put(preparedSettings)
                 .put(Client.CLIENT_TYPE_SETTING, CLIENT_TYPE).build();
@@ -164,6 +165,7 @@ public final class InternalNode implements Node {
 
         boolean success = false;
         try {
+            // 为依赖注入做准备
             ModulesBuilder modules = new ModulesBuilder();
             modules.add(new Version.Module(version));
             modules.add(new CacheRecyclerModule(settings));
@@ -223,8 +225,10 @@ public final class InternalNode implements Node {
         return client;
     }
 
+    // 节点开始执行主流程
     public Node start() {
         if (!lifecycle.moveToStarted()) {
+            // 如果当前节点已经进入STARTED状态，则不需要再次start
             return this;
         }
 
@@ -235,9 +239,12 @@ public final class InternalNode implements Node {
         injector.getInstance(Discovery.class).setAllocationService(injector.getInstance(AllocationService.class));
 
         for (Class<? extends LifecycleComponent> plugin : pluginsService.services()) {
+            // 启动plugins
             injector.getInstance(plugin).start();
         }
 
+        // 使用Google的Guice框架实现依赖注入来获取服务，获取到之后启动服务
+        // 话说ES还真是不喜欢引入jar包，而是直接用源码啊。。。
         injector.getInstance(MappingUpdatedAction.class).start();
         injector.getInstance(IndicesService.class).start();
         injector.getInstance(IndexingMemoryController.class).start();
@@ -380,7 +387,7 @@ public final class InternalNode implements Node {
         stopWatch.stop().start("script");
         try {
             injector.getInstance(ScriptService.class).close();
-        } catch(IOException e) {
+        } catch (IOException e) {
             logger.warn("ScriptService close failed", e);
         }
 

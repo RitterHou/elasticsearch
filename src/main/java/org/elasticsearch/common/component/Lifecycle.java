@@ -121,7 +121,7 @@ public class Lifecycle {
 
 
     public boolean moveToStarted() throws ElasticsearchIllegalStateException {
-        State localState = this.state;
+        State localState = this.state; // 缓存？
         if (localState == State.INITIALIZED || localState == State.STOPPED) {
             state = State.STARTED;
             return true;

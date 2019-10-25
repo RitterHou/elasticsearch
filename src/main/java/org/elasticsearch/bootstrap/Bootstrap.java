@@ -40,7 +40,6 @@ import org.elasticsearch.node.internal.InternalSettingsPreparer;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -63,6 +62,7 @@ public class Bootstrap {
 
     private void setup(boolean addShutdownHook, Tuple<Settings, Environment> tuple) throws Exception {
         if (tuple.v1().getAsBoolean("bootstrap.mlockall", false)) {
+            // 禁止内存swap
             Natives.tryMlockall();
         }
 
@@ -72,6 +72,7 @@ public class Bootstrap {
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
                 public void run() {
+                    // 释放资源
                     node.close();
                 }
             });
@@ -208,17 +209,20 @@ public class Bootstrap {
             }
 
             // fail if using broken version
+            // 检查JVM是否会存在bug
             JVMCheck.check();
 
             bootstrap.setup(true, tuple);
 
             stage = "Startup";
+            // 核心逻辑
             bootstrap.start();
 
             if (!foreground) {
                 System.err.close();
             }
 
+            // 下面这一大坨代码的目的在于，阻止当前线程结束一直到当前进程结束
             keepAliveLatch = new CountDownLatch(1);
             // keep this thread alive (non daemon thread) until we shutdown
             Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -252,7 +256,7 @@ public class Bootstrap {
                 Loggers.disableConsoleLogging();
             }
             logger.error("Exception", e);
-            
+
             System.exit(3);
         }
     }

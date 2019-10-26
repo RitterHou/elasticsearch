@@ -110,6 +110,7 @@ public class QueryPhase implements SearchPhase {
             Query query = searchContext.query();
 
             TopDocs topDocs;
+            // 为什么ES要禁止深分页呢？根本原因就在于此
             int numDocs = searchContext.from() + searchContext.size();
 
             if (searchContext.searchType() == SearchType.COUNT || numDocs == 0) {

@@ -374,7 +374,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
             context.indexShard().searchService().onPreQueryPhase(context);
             long time = System.nanoTime();
             try {
-                queryPhase.execute(context);
+                queryPhase.execute(context); // query阶段，根据查询条件取出文档ID
             } catch (Throwable e) {
                 context.indexShard().searchService().onFailedQueryPhase(context);
                 throw ExceptionsHelper.convertToRuntime(e);
@@ -383,8 +383,9 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
             context.indexShard().searchService().onQueryPhase(context, time2 - time);
             context.indexShard().searchService().onPreFetchPhase(context);
             try {
+                // 把小于from的doc全部剔除掉
                 shortcutDocIdsToLoad(context);
-                fetchPhase.execute(context);
+                fetchPhase.execute(context); // fetch阶段
                 if (context.scroll() == null) {
                     freeContext(context.id());
                 } else {

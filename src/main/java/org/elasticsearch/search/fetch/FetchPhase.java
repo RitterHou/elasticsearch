@@ -304,7 +304,7 @@ public class FetchPhase implements SearchPhase {
                     nestedParsedSource = (List<Map<String, Object>>) extractedValue;
                 } else if (extractedValue instanceof Map) {
                     // nested field has an object value in the _source. This just means the nested field has just one inner object, which is valid, but uncommon.
-                    nestedParsedSource = ImmutableList.of((Map < String, Object >) extractedValue);
+                    nestedParsedSource = ImmutableList.of((Map<String, Object>) extractedValue);
                 } else {
                     throw new ElasticsearchIllegalStateException("extracted source isn't an object or an array");
                 }
@@ -421,9 +421,11 @@ public class FetchPhase implements SearchPhase {
         return nestedIdentity;
     }
 
+    // 把本地保存的数据保存到fieldVisitor字段中
     private void loadStoredFields(SearchContext searchContext, AtomicReaderContext readerContext, FieldsVisitor fieldVisitor, int docId) {
         fieldVisitor.reset();
         try {
+            // 最核心的读取数据逻辑，从Lucene中根据docId获取数据
             readerContext.reader().document(docId, fieldVisitor);
         } catch (IOException e) {
             throw new FetchPhaseExecutionException(searchContext, "Failed to fetch doc id [" + docId + "]", e);

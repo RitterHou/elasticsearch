@@ -89,6 +89,16 @@ public class MulticastZenPing extends AbstractLifecycleComponent<ZenPing> implem
         this(EMPTY_SETTINGS, threadPool, transportService, clusterName, new NetworkService(EMPTY_SETTINGS), version);
     }
 
+    /**
+     * 使用组播通过ping实现节点发现
+     *
+     * @param settings         配置信息
+     * @param threadPool       线程池设置
+     * @param transportService 网络传输服务
+     * @param clusterName      集群的名称
+     * @param networkService   网络工具
+     * @param version          版本信息
+     */
     public MulticastZenPing(Settings settings, ThreadPool threadPool, TransportService transportService, ClusterName clusterName, NetworkService networkService, Version version) {
         super(settings);
         this.threadPool = threadPool;

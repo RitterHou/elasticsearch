@@ -208,6 +208,12 @@ public class TransportService extends AbstractLifecycleComponent<TransportServic
         return transport.boundAddress();
     }
 
+    /**
+     * 判断当前节点与指定节点的连接是否断开
+     *
+     * @param node
+     * @return
+     */
     public boolean nodeConnected(DiscoveryNode node) {
         return transport.nodeConnected(node);
     }
@@ -249,6 +255,16 @@ public class TransportService extends AbstractLifecycleComponent<TransportServic
         sendRequest(node, action, request, TransportRequestOptions.EMPTY, handler);
     }
 
+    /**
+     * 发送数据给指定节点
+     *
+     * @param node
+     * @param action
+     * @param request
+     * @param options
+     * @param handler
+     * @param <T>
+     */
     public <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action, final TransportRequest request,
                                                           final TransportRequestOptions options, TransportResponseHandler<T> handler) {
         if (node == null) {
@@ -264,6 +280,7 @@ public class TransportService extends AbstractLifecycleComponent<TransportServic
                 timeoutHandler = new TimeoutHandler(requestId);
             }
             clientHandlers.put(requestId, new RequestHolder<>(handler, node, action, timeoutHandler));
+            // 堂堂Elasticsearch的源码中居然有这样的代码。。。
             if (started.get() == false) {
                 // if we are not started the exception handling will remove the RequestHolder again and calls the handler to notify the caller.
                 // it will only notify if the toStop code hasn't done the work yet.
@@ -273,6 +290,7 @@ public class TransportService extends AbstractLifecycleComponent<TransportServic
                 assert options.timeout() != null;
                 timeoutHandler.future = threadPool.schedule(options.timeout(), ThreadPool.Names.GENERIC, timeoutHandler);
             }
+            // 发送请求
             transport.sendRequest(node, requestId, action, request, options);
         } catch (final Throwable e) {
             // usually happen either because we failed to connect to the node

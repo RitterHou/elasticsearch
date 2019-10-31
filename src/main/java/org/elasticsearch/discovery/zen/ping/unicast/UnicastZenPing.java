@@ -293,8 +293,16 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
     }
 
 
+    /**
+     * 给当前节点所有的已知节点发送ping信息
+     *
+     * @param timeout
+     * @param waitTime
+     * @param sendPingsHandler
+     */
     void sendPings(final TimeValue timeout, @Nullable TimeValue waitTime, final SendPingsHandler sendPingsHandler) {
         final UnicastPingRequest pingRequest = new UnicastPingRequest();
+        // 构建UnicastPingRequest
         pingRequest.id = sendPingsHandler.id();
         pingRequest.timeout = timeout;
         DiscoveryNodes discoNodes = contextProvider.nodes();
@@ -325,6 +333,7 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
         ArrayList<DiscoveryNode> nodesToPing = Lists.newArrayList(configuredTargetNodes);
         nodesToPing.addAll(sortedNodesToPing);
 
+        // 等待多个节点全部ping结束再继续执行
         final CountDownLatch latch = new CountDownLatch(nodesToPing.size());
         for (final DiscoveryNode node : nodesToPing) {
             // make sure we are connected
@@ -337,6 +346,7 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
                 nodeFoundByAddress = false;
             }
 
+            // 与指定节点已经断开了连接
             if (!transportService.nodeConnected(nodeToSend)) {
                 if (sendPingsHandler.isClosed()) {
                     return;
@@ -368,8 +378,10 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
                         boolean success = false;
                         try {
                             // connect to the node, see if we manage to do it, if not, bail
+                            // 连接到指定节点
                             if (!nodeFoundByAddress) {
                                 logger.trace("[{}] connecting (light) to {}", sendPingsHandler.id(), finalNodeToSend);
+                                // 这里的light似乎是“轻量级”的意思？即轻量级的连接
                                 transportService.connectToNodeLight(finalNodeToSend);
                             } else {
                                 logger.trace("[{}] connecting to {}", sendPingsHandler.id(), finalNodeToSend);
@@ -423,7 +435,9 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
         }
     }
 
-    /** See {@link #ACTION_NAME_GTE_1_4} for an explanation for why this needed */
+    /**
+     * See {@link #ACTION_NAME_GTE_1_4} for an explanation for why this needed
+     */
     private void sendPingRequestTo14NodeWithFallback(final int id, final TimeValue timeout, final UnicastPingRequest pingRequest, final CountDownLatch latch, final DiscoveryNode node, final DiscoveryNode nodeToSend) {
         logger.trace("[{}] sending to {}, using >=1.4.0 serialization", id, nodeToSend);
         DiscoveryNode actualNodeToSend = new DiscoveryNode(nodeToSend.name(), nodeToSend.id(), nodeToSend.getHostName(), nodeToSend.getHostAddress(),
@@ -463,38 +477,62 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
         });
     }
 
+    /**
+     * 向指定节点发送ping请求
+     *
+     * @param id
+     * @param timeout
+     * @param pingRequest
+     * @param latch
+     * @param node
+     * @param nodeToSend
+     */
     private void sendPingRequestToNode(final int id, final TimeValue timeout, final UnicastPingRequest pingRequest, final CountDownLatch latch, final DiscoveryNode node, final DiscoveryNode nodeToSend) {
         logger.trace("[{}] sending to {}", id, nodeToSend);
-        transportService.sendRequest(nodeToSend, ACTION_NAME, pingRequest, TransportRequestOptions.options().withTimeout((long) (timeout.millis() * 1.25)), new BaseTransportResponseHandler<UnicastPingResponse>() {
+        transportService.sendRequest(
+                nodeToSend,
+                ACTION_NAME,
+                pingRequest,
+                TransportRequestOptions.options().withTimeout((long) (timeout.millis() * 1.25)),
+                // TransportResponseHandler用于处理transport的响应
+                new BaseTransportResponseHandler<UnicastPingResponse>() {
 
-            @Override
-            public UnicastPingResponse newInstance() {
-                return new UnicastPingResponse();
-            }
+                    @Override
+                    public UnicastPingResponse newInstance() {
+                        return new UnicastPingResponse();
+                    }
 
-            @Override
-            public String executor() {
-                return ThreadPool.Names.SAME;
-            }
+                    @Override
+                    public String executor() {
+                        return ThreadPool.Names.SAME;
+                    }
 
-            @Override
-            public void handleResponse(UnicastPingResponse response) {
-                handlePingResponse(response, id, nodeToSend, latch);
-            }
+                    @Override
+                    public void handleResponse(UnicastPingResponse response) {
+                        handlePingResponse(response, id, nodeToSend, latch);
+                    }
 
-            @Override
-            public void handleException(TransportException exp) {
-                latch.countDown();
-                if (exp instanceof ConnectTransportException) {
-                    // ok, not connected...
-                    logger.trace("failed to connect to {}", exp, nodeToSend);
-                } else {
-                    logger.warn("failed to send ping to [{}]", exp, node);
-                }
-            }
-        });
+                    @Override
+                    public void handleException(TransportException exp) {
+                        latch.countDown();
+                        if (exp instanceof ConnectTransportException) {
+                            // ok, not connected...
+                            logger.trace("failed to connect to {}", exp, nodeToSend);
+                        } else {
+                            logger.warn("failed to send ping to [{}]", exp, node);
+                        }
+                    }
+                });
     }
 
+    /**
+     * 节点ping响应的处理器
+     *
+     * @param response
+     * @param id
+     * @param nodeToSend
+     * @param latch
+     */
     private void handlePingResponse(UnicastPingResponse response, int id, DiscoveryNode nodeToSend, CountDownLatch latch) {
         logger.trace("[{}] received response from {}: {}", id, nodeToSend, Arrays.toString(response.pingResponses));
         try {
@@ -565,6 +603,9 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
         }
     }
 
+    /**
+     * 单播ping的请求
+     */
     static class UnicastPingRequest extends TransportRequest {
 
         int id;
@@ -597,6 +638,9 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
         return new PingResponse(discoNodes.localNode(), discoNodes.masterNode(), clusterName, contextProvider.nodeHasJoinedClusterOnce());
     }
 
+    /**
+     * 单播ping的响应
+     */
     static class UnicastPingResponse extends TransportResponse {
 
         int id;
@@ -610,6 +654,7 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
         public void readFrom(StreamInput in) throws IOException {
             super.readFrom(in);
             id = in.readInt();
+            // 简单的编码
             pingResponses = new PingResponse[in.readVInt()];
             for (int i = 0; i < pingResponses.length; i++) {
                 pingResponses[i] = readPingResponse(in);
@@ -620,6 +665,7 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
             out.writeInt(id);
+            // 简单的编码
             out.writeVInt(pingResponses.length);
             for (PingResponse pingResponse : pingResponses) {
                 pingResponse.writeTo(out);

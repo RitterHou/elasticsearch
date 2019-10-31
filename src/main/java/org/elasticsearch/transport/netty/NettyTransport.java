@@ -623,6 +623,17 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
         return channels == null ? 0 : channels.numberOfOpenChannels();
     }
 
+    /**
+     * 向指定节点发送请求
+     *
+     * @param node
+     * @param requestId
+     * @param action
+     * @param request
+     * @param options
+     * @throws IOException
+     * @throws TransportException
+     */
     @Override
     public void sendRequest(final DiscoveryNode node, final long requestId, final String action, final TransportRequest request, TransportRequestOptions options) throws IOException, TransportException {
 
@@ -736,6 +747,7 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
                         }
                     }
                     // we acquire a connection lock, so no way there is an existing connection
+                    // 保存节点与节点channel信息
                     connectedNodes.put(node, nodeChannels);
                     if (logger.isDebugEnabled()) {
                         logger.debug("connected to node [{}]", node);

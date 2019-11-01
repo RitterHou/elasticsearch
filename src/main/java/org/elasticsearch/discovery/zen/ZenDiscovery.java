@@ -111,12 +111,18 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
     private final TimeValue pingTimeout;
     private final TimeValue joinTimeout;
 
-    /** how many retry attempts to perform if join request failed with an retriable error */
+    /**
+     * how many retry attempts to perform if join request failed with an retriable error
+     */
     private final int joinRetryAttempts;
-    /** how long to wait before performing another join attempt after a join request failed with an retriable error */
+    /**
+     * how long to wait before performing another join attempt after a join request failed with an retriable error
+     */
     private final TimeValue joinRetryDelay;
 
-    /** how many pings from *another* master to tolerate before forcing a rejoin on other or local master */
+    /**
+     * how many pings from *another* master to tolerate before forcing a rejoin on other or local master
+     */
     private final int maxPingsFromAnotherMaster;
 
     // a flag that should be used only for testing
@@ -136,7 +142,9 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
 
     private volatile boolean rejoinOnMasterGone;
 
-    /** counts the time this node has joined the cluster or have elected it self as master */
+    /**
+     * counts the time this node has joined the cluster or have elected it self as master
+     */
     private final AtomicLong clusterJoinsCounter = new AtomicLong();
 
     @Nullable
@@ -313,7 +321,9 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
         return clusterName.value() + "/" + clusterService.localNode().id();
     }
 
-    /** start of {@link org.elasticsearch.discovery.zen.ping.PingContextProvider } implementation */
+    /**
+     * start of {@link org.elasticsearch.discovery.zen.ping.PingContextProvider } implementation
+     */
     @Override
     public DiscoveryNodes nodes() {
         return clusterService.state().nodes();
@@ -329,7 +339,9 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
         return clusterJoinsCounter.get() > 0;
     }
 
-    /** end of {@link org.elasticsearch.discovery.zen.ping.PingContextProvider } implementation */
+    /**
+     * end of {@link org.elasticsearch.discovery.zen.ping.PingContextProvider } implementation
+     */
 
 
     @Override
@@ -353,10 +365,12 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
      * the main function of a join thread. This function is guaranteed to join the cluster
      * or spawn a new join thread upon failure to do so.
      */
+    // 加入集群
     private void innerJoinCluster() {
         DiscoveryNode masterNode = null;
         final Thread currentThread = Thread.currentThread();
         while (masterNode == null && joinThreadControl.joinThreadActive(currentThread)) {
+            // 得到master节点
             masterNode = findMaster();
         }
 
@@ -365,6 +379,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
             return;
         }
 
+        // 如果当前节点是master节点
         if (clusterService.localNode().equals(masterNode)) {
             clusterService.submitStateUpdateTask("zen-disco-join (elected_as_master)", Priority.IMMEDIATE, new ProcessedClusterStateNonMasterUpdateTask() {
                 @Override
@@ -470,6 +485,8 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
         while (true) {
             try {
                 logger.trace("joining master {}", masterNode);
+                // 给当前master节点发送加入当前集群的请求
+                // 最终都会使用到TransportService来发送数据，TransportService则使用NettyTransport来发送数据
                 membership.sendJoinRequestBlocking(masterNode, clusterService.localNode(), joinTimeout);
                 return true;
             } catch (Throwable t) {
@@ -991,6 +1008,11 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
         }
     }
 
+    /**
+     * 找到当前集群的master
+     *
+     * @return master节点
+     */
     private DiscoveryNode findMaster() {
         logger.trace("starting to ping");
         ZenPing.PingResponse[] fullPingResponses = pingService.pingAndWait(pingTimeout);
@@ -1075,6 +1097,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
             joinedOnceActiveNodes.clear();
         }
 
+        // 执行选举操作选出master
         if (pingMasters.isEmpty()) {
             if (electMaster.hasEnoughMasterNodes(activeNodes)) {
                 // we give preference to nodes who have previously already joined the cluster. Those will
@@ -1337,25 +1360,33 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
             this.threadPool = threadPool;
         }
 
-        /** returns true if join thread control is started and there is currently an active join thread */
+        /**
+         * returns true if join thread control is started and there is currently an active join thread
+         */
         public boolean joinThreadActive() {
             Thread currentThread = currentJoinThread.get();
             return running.get() && currentThread != null && currentThread.isAlive();
         }
 
-        /** returns true if join thread control is started and the supplied thread is the currently active joinThread */
+        /**
+         * returns true if join thread control is started and the supplied thread is the currently active joinThread
+         */
         public boolean joinThreadActive(Thread joinThread) {
             return running.get() && joinThread.equals(currentJoinThread.get());
         }
 
-        /** cleans any running joining thread and calls {@link #rejoin} */
+        /**
+         * cleans any running joining thread and calls {@link #rejoin}
+         */
         public ClusterState stopRunningThreadAndRejoin(ClusterState clusterState, String reason) {
             assertClusterStateThread();
             currentJoinThread.set(null);
             return rejoin(clusterState, reason);
         }
 
-        /** starts a new joining thread if there is no currently active one and join thread controlling is started */
+        /**
+         * starts a new joining thread if there is no currently active one and join thread controlling is started
+         */
         public void startNewThreadIfNotRunning() {
             assertClusterStateThread();
             if (joinThreadActive()) {
@@ -1397,7 +1428,9 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
             startNewThreadIfNotRunning();
         }
 
-        /** marks the given joinThread as completed. Returns false if the supplied thread is not the currently active join thread */
+        /**
+         * marks the given joinThread as completed. Returns false if the supplied thread is not the currently active join thread
+         */
         public boolean markThreadAsDone(Thread joinThread) {
             assertClusterStateThread();
             return currentJoinThread.compareAndSet(joinThread, null);

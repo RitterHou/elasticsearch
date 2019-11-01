@@ -73,6 +73,7 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
      * we can safely use 1.4.0 as a serialization format. If this fails with a {@link ActionNotFoundTransportException}
      * we know we speak to a node with <1.4 version, and fall back to use {@link #ACTION_NAME}.
      */
+    // 根本目的是为了向前兼容
     public static final String ACTION_NAME_GTE_1_4 = "internal:discovery/zen/unicast_gte_1_4";
 
     public static final int LIMIT_PORTS_COUNT = 1;
